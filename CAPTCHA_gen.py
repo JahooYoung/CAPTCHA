@@ -8,7 +8,7 @@ import numpy as np
 import math
 import sys
 
-Dir = './CAPTCHA/'
+Dir = './data/'
 
 # 随机字母:
 alphabet = []
@@ -35,7 +35,7 @@ def rndColor2():
 def rndColor3():
     return (random.randint(48, 191), random.randint(48, 191), random.randint(48, 191))
 
-def generate():
+def generate(filename):
     # width x height:
     width = 60 * 2
     height = 50
@@ -92,7 +92,11 @@ def generate():
     enhancer = ImageEnhance.Sharpness(image)
     image = enhancer.enhance(2.0)
 
-    image.save(Dir + ans + '.png', 'png')
+    bg = Image.new('RGB', image.size, (255, 255, 255))
+    bg.paste(image, mask = image.split()[3])
+    bg.save(filename, 'jpeg', quality = 80)
+
+    return ans
     # image.save('code.png', 'png')
 
 import shutil, os
@@ -101,8 +105,13 @@ if not os.path.exists(Dir):
     os.mkdir(Dir)
 for file in os.listdir(Dir):
     os.remove(Dir + file)
+result = open(Dir + 'ans.csv', 'w')
 for i in range(24):
-    generate()
+    file = str(i) + '.jpg'
+    ans = generate(Dir + file)
+    result.write(file + ',' + ans + '\n')
+result.close()
+
 
 ######################
 # Processor
