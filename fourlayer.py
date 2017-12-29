@@ -186,71 +186,72 @@ def getBatch(start, batchsize):
 # train
 ########################
 
-print('start training')
-for i in range(rounds):
-    batch = getBatch(start, batchsize)
-    #embed()
-    start += batchsize
-    if start >= datasize: start -= datasize
-    #if start >= 10000: start -= 10000
-    if (i + 1) % 10 == 0:
-        # print(batch[1].shape)
-        train_accuracy = accuracy.eval(feed_dict={
-            x:batch[0], y_: batch[1], keep_prob: 1.0})
-        print("step %d, training accuracy %g" % (i + 1, train_accuracy))
-    train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+# print('start training')
+# for i in range(rounds):
+#     batch = getBatch(start, batchsize)
+#     #embed()
+#     start += batchsize
+#     if start >= datasize: start -= datasize
+#     #if start >= 10000: start -= 10000
+#     if (i + 1) % 10 == 0:
+#         # print(batch[1].shape)
+#         train_accuracy = accuracy.eval(feed_dict={
+#             x:batch[0], y_: batch[1], keep_prob: 1.0})
+#         print("step %d, training accuracy %g" % (i + 1, train_accuracy))
+#     train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
 
-saver = tf.train.Saver(tf.global_variables())
-saver.save(sess, 'data/model/four-layer-model')
-print('Model saved at "data/model/four-layer-model".')
+# saver = tf.train.Saver(tf.global_variables())
+# saver.save(sess, 'data/model/four-layer-model')
+# print('Model saved at "data/model/four-layer-model".')
 
 ########################
 # test
 ########################
 
-# saver = tf.train.Saver(tf.global_variables())
-# module_file = tf.train.latest_checkpoint('data/model/')
-# saver.restore(sess, module_file)
-# print('Model restore from "data/model/four-layer-model".')
+saver = tf.train.Saver(tf.global_variables())
+module_file = tf.train.latest_checkpoint('data/model/')
+saver.restore(sess, module_file)
+print('Model restore from "data/model/four-layer-model".')
 
-print('start testing...')
-testbatch = getBatch(datasize, bigsize)
-# print("test accuracy %f" % accuracy.eval(feed_dict={
-#     x: testbatch[0], y_: testbatch[1], keep_prob: 1.0}))
-
-preVec = tf.argmax(y_conv, 1).eval(feed_dict = {
-    x: testbatch[0], y_: testbatch[1], keep_prob: 1.0
-    })
-ansVec = tf.argmax(y_, 1).eval(feed_dict = {
-    x: testbatch[0], y_: testbatch[1], keep_prob: 1.0
-    })
-
-cnt = [0] * 36
+cnt = np.zeros(36, dtype = np.int32)
 cor = np.zeros((36, 36), dtype = np.int32)
-for (i, ans) in enumerate(ansVec):
-    cnt[ans] += 1
-    cor[ans][preVec[i]] += 1
-print('acu', end = '')
+batchsize = 1000
+print('start testing...(total groups: %d)' % (bigsize // batchsize))
+for grp in range(bigsize // batchsize):
+    print('testing group %d' % (grp))
+    testbatch = getBatch(datasize + grp * batchsize, batchsize)
+    preVec = tf.argmax(y_conv, 1).eval(feed_dict = {
+        x: testbatch[0], y_: testbatch[1], keep_prob: 1.0
+        })
+    ansVec = tf.argmax(y_, 1).eval(feed_dict = {
+        x: testbatch[0], y_: testbatch[1], keep_prob: 1.0
+        })
+    for (i, ans) in enumerate(ansVec):
+        cnt[ans] += 1
+        cor[ans][preVec[i]] += 1
+
+acc = [0, 0]
 for i in range(36):
-    t = 55
-    if i < 10: t = 48
-    print(',%c' % (chr(i + t)), end = '')
-print('')
-for i in range(36):
-    t = 55
-    if i < 10: t = 48
-    print(chr(i + t), end = '')
-    for j in range(36):
-        acu = float('nan')
-        if cnt[i] > 0:
-            acu = cor[i][j] / cnt[i]
-        print(',%f' % (acu * 100), end = '')
-    print('')
-acu = [0, 0]
-for i in range(36):
-    acu[0] += cnt[i]
-    acu[1] += cor[i][i]
-print('accuracy: %f' % (acu[1] / acu[0]))
+    acc[0] += cnt[i]
+    acc[1] += cor[i][i]
+print('accuracy: %f' % (acc[1] / acc[0]))
+with open('data/model/result(%f).csv' % (acc[1] / acc[0]), 'w') as file:
+    file.write('accuracy: %f' % (acc[1] / acc[0]))
+    for i in range(36):
+        t = 55
+        if i < 10: t = 48
+        file.write(',%c' % (chr(i + t)))
+    file.write('\n')
+    for i in range(36):
+        t = 55
+        if i < 10: t = 48
+        file.write(chr(i + t))
+        for j in range(36):
+            acu = float('nan')
+            if cnt[i] > 0:
+                acu = cor[i][j] / cnt[i]
+            file.write(',%f' % (acu * 100))
+        file.write('\n')
 
 
 ########################
