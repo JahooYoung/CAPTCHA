@@ -87,7 +87,7 @@ x_image = tf.reshape(x, [-1,width,height,1]) #将输入按照 conv2d中input的�
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*14*14*32
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*20*30*32
 """
-feature1 = 32
+feature1 = 64
 W_conv1 = weight_variable([3, 3, 1, feature1], name = 'W_conv1')  
 # 卷积是在每个5*5的patch中算出32个特征，分别是patch大小，输入通道数目，输出通道数目
 b_conv1 = bias_variable([feature1], name = 'b_conv1')
@@ -101,7 +101,7 @@ h_pool1 = max_pool_2x2(h_conv1)
 # 池化后，输出的图像尺寸为?*7*7*64
 # 池化后，输出的图像尺寸为?*10*15*64
 """
-feature2 = 64
+feature2 = 128
 W_conv2 = weight_variable([3, 3, feature1, feature2], name = 'W_conv2')
 b_conv2 = bias_variable([feature2], name = 'b_conv2')
 h_conv2 = tf.nn.elu(conv2d(h_pool1, W_conv2) + b_conv2)
@@ -193,32 +193,32 @@ def getBatch(start, batchsize):
 # train
 ########################
 
-# print('start training')
-# for i in range(rounds):
-#     batch = getBatch(start, batchsize)
-#     #embed()
-#     start += batchsize
-#     if start >= datasize: start -= datasize
-#     #if start >= 10000: start -= 10000
-#     if (i + 1) % 10 == 0:
-#         # print(batch[1].shape)
-#         train_accuracy = accuracy.eval(feed_dict={
-#             x:batch[0], y_: batch[1], keep_prob: 1.0})
-#         print("step %d, training accuracy %g" % (i + 1, train_accuracy))
-#     train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+print('start training')
+for i in range(rounds):
+    batch = getBatch(start, batchsize)
+    #embed()
+    start += batchsize
+    if start >= datasize: start -= datasize
+    #if start >= 10000: start -= 10000
+    if (i + 1) % 10 == 0:
+        # print(batch[1].shape)
+        train_accuracy = accuracy.eval(feed_dict={
+            x:batch[0], y_: batch[1], keep_prob: 1.0})
+        print("step %d, training accuracy %g" % (i + 1, train_accuracy))
+    train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
 
-# saver = tf.train.Saver(tf.global_variables())
-# saver.save(sess, modelpath + 'three-layer-model')
-# print('Model saved at "%s"' % (modelpath + 'three-layer-model'))
+saver = tf.train.Saver(tf.global_variables())
+saver.save(sess, modelpath + 'three-layer-model')
+print('Model saved at "%s"' % (modelpath + 'three-layer-model'))
 
 ########################
 # test
 ########################
 
-saver = tf.train.Saver(tf.global_variables())
-module_file = tf.train.latest_checkpoint(modelpath)
-saver.restore(sess, module_file)
-print('Model restore from "%s"' % (modelpath + 'three-layer-model'))
+# saver = tf.train.Saver(tf.global_variables())
+# module_file = tf.train.latest_checkpoint(modelpath)
+# saver.restore(sess, module_file)
+# print('Model restore from "%s"' % (modelpath + 'three-layer-model'))
 
 cnt = np.zeros(36, dtype = np.int32)
 cor = np.zeros((36, 36), dtype = np.int32)
