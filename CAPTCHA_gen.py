@@ -8,7 +8,7 @@ import numpy as np
 import math
 import sys
 
-Dir = './data/'
+Dir = './data/train/'
 
 # 随机字母:
 alphabet = []
@@ -37,8 +37,8 @@ def rndColor3():
 
 def generate(filename):
     # width x height:
-    width = 60 * 2
-    height = 50
+    width = 28 * 4
+    height = 40
     image = Image.new('RGBA', (width, height), (255, 255, 255, 127))
     # 创建Font对象:
     font = ImageFont.truetype('C:\Windows\Fonts\Arial.ttf', 36)
@@ -49,7 +49,7 @@ def generate(filename):
     #     for y in range(height):
     #         draw.point((x, y), fill=rndColor())
     # 输出文字:
-    xlist = [0, 30, 60, 90]
+    xlist = [0, 28, 56, 84]
     # while len(xlist) < 4:
     #     t = random.randint(width // 12, width // 6 * 4)
     #     mindis = width
@@ -106,7 +106,9 @@ if not os.path.exists(Dir):
 for file in os.listdir(Dir):
     os.remove(Dir + file)
 result = open(Dir + 'ans.csv', 'w')
-for i in range(24):
+for i in range(2000):
+    if (i + 1) % 100 == 0:
+        print(i + 1)
     file = str(i) + '.jpg'
     ans = generate(Dir + file)
     result.write(file + ',' + ans + '\n')
