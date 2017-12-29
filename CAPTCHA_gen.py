@@ -37,7 +37,7 @@ def rndColor3():
 
 def generate(filename):
     # width x height:
-    width = 28 * 4
+    width = 32 * 4
     height = 40
     image = Image.new('RGBA', (width, height), (255, 255, 255, 127))
     # 创建Font对象:
@@ -49,7 +49,7 @@ def generate(filename):
     #     for y in range(height):
     #         draw.point((x, y), fill=rndColor())
     # 输出文字:
-    xlist = [0, 28, 56, 84]
+    xlist = [4, 32 + 4, 64 + 4, 96 + 4]
     # while len(xlist) < 4:
     #     t = random.randint(width // 12, width // 6 * 4)
     #     mindis = width
@@ -106,7 +106,7 @@ if not os.path.exists(Dir):
 for file in os.listdir(Dir):
     os.remove(Dir + file)
 result = open(Dir + 'ans.csv', 'w')
-for i in range(2000):
+for i in range(10000):
     if (i + 1) % 100 == 0:
         print(i + 1)
     file = str(i) + '.jpg'

@@ -31,7 +31,7 @@ def cropdata(name):
 #                 (10,29)(45,66)
             # box = (30*j,0,30*j+40,60)
             # box = (32 + 30 * j, 9, 68 + 30 * j, 45) # 36 * 36
-            box = (28 * j, 0, 28 * (j + 1), 40)
+            box = (32 * j, 0, 32 * (j + 1), 40)
             tmp = im.crop(box)
             #tmp.show()
             encode_data(tmp)
@@ -48,7 +48,7 @@ def main():
     # croppath = 'big_sample/yjh_bigdata/'
     output_path = 'data/'
     workers = 1
-    data_len = 2000
+    data_len = 10000
     start = 0
 
     datalist = []

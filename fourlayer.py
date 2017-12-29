@@ -27,6 +27,8 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 import tensorflow as tf
 import pickle
+import random
+import numpy as np
 # from IPython import embed
 # from IPython import embed
 
@@ -72,7 +74,7 @@ def max_pool_2x2(x):
 
 sess = tf.InteractiveSession()
 
-width, height, resultSpace = (28, 40, 36)
+width, height, resultSpace = (32, 40, 36)
 
 x = tf.placeholder(tf.float32, [None, width * height])
 x_image = tf.reshape(x, [-1,width,height,1]) #将输入按照 conv2d中input的格式来reshape，reshape
@@ -85,10 +87,10 @@ x_image = tf.reshape(x, [-1,width,height,1]) #将输入按照 conv2d中input的�
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*14*14*32
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*20*30*32
 """
-W_conv1 = weight_variable([5, 5, 1, 32], name = 'W_conv1')  # 卷积是在每个5*5的patch中算出32个特征，分别是patch大小，输入通道数目，输出通道数目
+W_conv1 = weight_variable([3, 3, 1, 32], name = 'W_conv1')  # 卷积是在每个5*5的patch中算出32个特征，分别是patch大小，输入通道数目，输出通道数目
 b_conv1 = bias_variable([32], name = 'b_conv1')
 h_conv1 = tf.nn.elu(conv2d(x_image, W_conv1) + b_conv1)
-h_pool1 = max_pool_2x2(h_conv1)
+# h_pool1 = max_pool_2x2(h_conv1)
 
 """
 # 第二层
@@ -97,25 +99,26 @@ h_pool1 = max_pool_2x2(h_conv1)
 # 池化后，输出的图像尺寸为?*7*7*64
 # 池化后，输出的图像尺寸为?*10*15*64
 """
-W_conv2 = weight_variable([5, 5, 32, 64], name = 'W_conv2')
+W_conv2 = weight_variable([3, 3, 32, 64], name = 'W_conv2')
 b_conv2 = bias_variable([64], name = 'b_conv2')
-h_conv2 = tf.nn.elu(conv2d(h_pool1, W_conv2) + b_conv2)
-h_pool2 = h_conv2
+h_conv2 = tf.nn.elu(conv2d(h_conv1, W_conv2) + b_conv2)
+h_pool2 = max_pool_2x2(h_conv2)
 
-# W_conv3 = weight_variable([5, 5, 64, 64])
-# b_conv3 = bias_variable([64])
-# h_conv3 = tf.nn.elu(conv2d(h_pool2, W_conv3) + b_conv3)
-# h_pool3 = h_conv3
+W_conv3 = weight_variable([3, 3, 64, 128], name = "W_conv3")
+b_conv3 = bias_variable([128], name = 'b_conv3')
+h_conv3 = tf.nn.elu(conv2d(h_pool2, W_conv3) + b_conv3)
+h_pool3 = max_pool_2x2(h_conv3)
+h_pool4 = max_pool_2x2(h_pool3)
 
 # W_conv4 = weight_variable([5, 5, 64, 128])
 # b_conv4 = bias_variable([128])
 # h_conv4 = tf.nn.elu(conv2d(h_pool3, W_conv4) + b_conv4)
-h_pool4 = max_pool_2x2(h_conv2)
+# h_pool4 = max_pool_2x2(h_conv4)
 
 # 第三层 是个全连接层,输入维数7*7*64, 输出维数为1024
-W_fc1 = weight_variable([(width // 4) * (height // 4) * 64, 1024], name = 'W_fc1')
+W_fc1 = weight_variable([(width // 8) * (height // 8) * 128, 1024], name = 'W_fc1')
 b_fc1 = bias_variable([1024], name = 'b_fc1')
-h_pool2_flat = tf.reshape(h_pool4, [-1, (width // 4) * (height // 4) * 64])
+h_pool2_flat = tf.reshape(h_pool4, [-1, (width // 8) * (height // 8) * 128])
 h_fc1 = tf.nn.elu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 keep_prob = tf.placeholder(tf.float32) # 这里使用了drop out,即随机安排一些cell输出值为0，可以防止过拟合
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
@@ -123,7 +126,7 @@ h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 # 第四层，输入1024维，输出62维，也就是具体的0~9分类
 W_fc2 = weight_variable([1024, resultSpace], name = 'W_fc2')
 b_fc2 = bias_variable([resultSpace], name = 'b_fc2')
-y_conv=tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2) # 使用softmax作为多分类激活函数
+y_conv = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2) # 使用softmax作为多分类激活函数
 y_ = tf.placeholder(tf.float32, [None, resultSpace])
 
 # cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y_conv), reduction_indices=[1])) # 损失函数，交叉熵
@@ -137,10 +140,11 @@ sess.run(tf.global_variables_initializer()) # 变量初始化
 #inputY = []
 #with open('data_package/big_package_5000', 'rb') as f:
 
-start = 0
-batchsize = 50
-bigsize = 2000
+rounds = 3000
+bigsize = 10000
 datasize = bigsize * 3
+batchsize = 50
+start = random.randint(0, datasize // batchsize) * batchsize
 
 print('loading data...', end = '')
 with open('data/train_package_%d' % bigsize, 'rb') as f:
@@ -154,10 +158,11 @@ with open('data/train_ans_%d' % bigsize, 'rb') as f:
         inputY.append(vector)
 print('complete')
 
-# import numpy as np
+#######################
+# check the pictures
+#######################
 # import matplotlib.pyplot as plt
 # import matplotlib.image as mpimg
-# import random
 # for i in range(10):
 #     ii = random.randint(0, datasize)
 #     print(ii)
@@ -182,7 +187,7 @@ def getBatch(start, batchsize):
 ########################
 
 print('start training')
-for i in range(2000):
+for i in range(rounds):
     batch = getBatch(start, batchsize)
     #embed()
     start += batchsize
@@ -192,7 +197,7 @@ for i in range(2000):
         # print(batch[1].shape)
         train_accuracy = accuracy.eval(feed_dict={
             x:batch[0], y_: batch[1], keep_prob: 1.0})
-        print("step %d, training accuracy %g"%(i, train_accuracy))
+        print("step %d, training accuracy %g" % (i + 1, train_accuracy))
     train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
 
 saver = tf.train.Saver(tf.global_variables())
@@ -203,15 +208,50 @@ print('Model saved at "data/model/four-layer-model".')
 # test
 ########################
 
-saver = tf.train.Saver(tf.global_variables())
-module_file = tf.train.latest_checkpoint('data/model/')
-saver.restore(sess, module_file)
-print('Model restore from "data/model/four-layer-model".')
+# saver = tf.train.Saver(tf.global_variables())
+# module_file = tf.train.latest_checkpoint('data/model/')
+# saver.restore(sess, module_file)
+# print('Model restore from "data/model/four-layer-model".')
 
 print('start testing...')
 testbatch = getBatch(datasize, bigsize)
-print("test accuracy %f" % accuracy.eval(feed_dict={
-    x: testbatch[0], y_: testbatch[1], keep_prob: 1.0}))
+# print("test accuracy %f" % accuracy.eval(feed_dict={
+#     x: testbatch[0], y_: testbatch[1], keep_prob: 1.0}))
+
+preVec = tf.argmax(y_conv, 1).eval(feed_dict = {
+    x: testbatch[0], y_: testbatch[1], keep_prob: 1.0
+    })
+ansVec = tf.argmax(y_, 1).eval(feed_dict = {
+    x: testbatch[0], y_: testbatch[1], keep_prob: 1.0
+    })
+
+cnt = [0] * 36
+cor = np.zeros((36, 36), dtype = np.int32)
+for (i, ans) in enumerate(ansVec):
+    cnt[ans] += 1
+    cor[ans][preVec[i]] += 1
+print('acu', end = '')
+for i in range(36):
+    t = 55
+    if i < 10: t = 48
+    print(',%c' % (chr(i + t)), end = '')
+print('')
+for i in range(36):
+    t = 55
+    if i < 10: t = 48
+    print(chr(i + t), end = '')
+    for j in range(36):
+        acu = float('nan')
+        if cnt[i] > 0:
+            acu = cor[i][j] / cnt[i]
+        print(',%f' % (acu * 100), end = '')
+    print('')
+acu = [0, 0]
+for i in range(36):
+    acu[0] += cnt[i]
+    acu[1] += cor[i][i]
+print('accuracy: %f' % (acu[1] / acu[0]))
+
 
 ########################
 # apply
