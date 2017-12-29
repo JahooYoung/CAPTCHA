@@ -87,10 +87,12 @@ x_image = tf.reshape(x, [-1,width,height,1]) #将输入按照 conv2d中input的�
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*14*14*32
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*20*30*32
 """
-W_conv1 = weight_variable([3, 3, 1, 32], name = 'W_conv1')  # 卷积是在每个5*5的patch中算出32个特征，分别是patch大小，输入通道数目，输出通道数目
-b_conv1 = bias_variable([32], name = 'b_conv1')
+feature1 = 32
+W_conv1 = weight_variable([3, 3, 1, feature1], name = 'W_conv1')  
+# 卷积是在每个5*5的patch中算出32个特征，分别是patch大小，输入通道数目，输出通道数目
+b_conv1 = bias_variable([feature1], name = 'b_conv1')
 h_conv1 = tf.nn.elu(conv2d(x_image, W_conv1) + b_conv1)
-# h_pool1 = max_pool_2x2(h_conv1)
+h_pool1 = max_pool_2x2(h_conv1)
 
 """
 # 第二层
@@ -99,32 +101,35 @@ h_conv1 = tf.nn.elu(conv2d(x_image, W_conv1) + b_conv1)
 # 池化后，输出的图像尺寸为?*7*7*64
 # 池化后，输出的图像尺寸为?*10*15*64
 """
-W_conv2 = weight_variable([3, 3, 32, 64], name = 'W_conv2')
-b_conv2 = bias_variable([64], name = 'b_conv2')
-h_conv2 = tf.nn.elu(conv2d(h_conv1, W_conv2) + b_conv2)
+feature2 = 64
+W_conv2 = weight_variable([3, 3, feature1, feature2], name = 'W_conv2')
+b_conv2 = bias_variable([feature2], name = 'b_conv2')
+h_conv2 = tf.nn.elu(conv2d(h_pool1, W_conv2) + b_conv2)
 h_pool2 = max_pool_2x2(h_conv2)
 
-W_conv3 = weight_variable([3, 3, 64, 128], name = "W_conv3")
-b_conv3 = bias_variable([128], name = 'b_conv3')
+feature3 = 128
+W_conv3 = weight_variable([3, 3, feature2, feature3], name = "W_conv3")
+b_conv3 = bias_variable([feature3], name = 'b_conv3')
 h_conv3 = tf.nn.elu(conv2d(h_pool2, W_conv3) + b_conv3)
 h_pool3 = max_pool_2x2(h_conv3)
-h_pool4 = max_pool_2x2(h_pool3)
+# h_pool4 = max_pool_2x2(h_pool3)
 
-# W_conv4 = weight_variable([5, 5, 64, 128])
-# b_conv4 = bias_variable([128])
+# W_conv4 = weight_variable([5, 5, 64, feature3])
+# b_conv4 = bias_variable([feature3])
 # h_conv4 = tf.nn.elu(conv2d(h_pool3, W_conv4) + b_conv4)
 # h_pool4 = max_pool_2x2(h_conv4)
 
-# 第三层 是个全连接层,输入维数7*7*64, 输出维数为1024
-W_fc1 = weight_variable([(width // 8) * (height // 8) * 128, 1024], name = 'W_fc1')
-b_fc1 = bias_variable([1024], name = 'b_fc1')
-h_pool2_flat = tf.reshape(h_pool4, [-1, (width // 8) * (height // 8) * 128])
+# 第三层 是个全连接层,输入维数7*7*64, 输出维数为output_dimension
+output_dimension = 1024
+W_fc1 = weight_variable([(width // 8) * (height // 8) * feature3, output_dimension], name = 'W_fc1')
+b_fc1 = bias_variable([output_dimension], name = 'b_fc1')
+h_pool2_flat = tf.reshape(h_pool3, [-1, (width // 8) * (height // 8) * feature3])
 h_fc1 = tf.nn.elu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 keep_prob = tf.placeholder(tf.float32) # 这里使用了drop out,即随机安排一些cell输出值为0，可以防止过拟合
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
-# 第四层，输入1024维，输出62维，也就是具体的0~9分类
-W_fc2 = weight_variable([1024, resultSpace], name = 'W_fc2')
+# 第四层，输入output_dimension维，输出resultSpace维，也就是具体的分类
+W_fc2 = weight_variable([output_dimension, resultSpace], name = 'W_fc2')
 b_fc2 = bias_variable([resultSpace], name = 'b_fc2')
 y_conv = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2) # 使用softmax作为多分类激活函数
 y_ = tf.placeholder(tf.float32, [None, resultSpace])
@@ -136,9 +141,11 @@ correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1)) # 计算准�
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 sess.run(tf.global_variables_initializer()) # 变量初始化
 
-#inputX = []
-#inputY = []
-#with open('data_package/big_package_5000', 'rb') as f:
+########################
+# end of network
+########################
+
+modelpath = 'model/'
 
 rounds = 3000
 bigsize = 10000
@@ -201,17 +208,17 @@ def getBatch(start, batchsize):
 #     train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
 
 # saver = tf.train.Saver(tf.global_variables())
-# saver.save(sess, 'data/model/four-layer-model')
-# print('Model saved at "data/model/four-layer-model".')
+# saver.save(sess, modelpath + 'three-layer-model')
+# print('Model saved at "%s"' % (modelpath + 'three-layer-model'))
 
 ########################
 # test
 ########################
 
 saver = tf.train.Saver(tf.global_variables())
-module_file = tf.train.latest_checkpoint('data/model/')
+module_file = tf.train.latest_checkpoint(modelpath)
 saver.restore(sess, module_file)
-print('Model restore from "data/model/four-layer-model".')
+print('Model restore from "%s"' % (modelpath + 'three-layer-model'))
 
 cnt = np.zeros(36, dtype = np.int32)
 cor = np.zeros((36, 36), dtype = np.int32)
@@ -235,7 +242,7 @@ for i in range(36):
     acc[0] += cnt[i]
     acc[1] += cor[i][i]
 print('accuracy: %f' % (acc[1] / acc[0]))
-with open('data/model/result(%f).csv' % (acc[1] / acc[0]), 'w') as file:
+with open(modelpath + 'result(%f).csv' % (acc[1] / acc[0]), 'w') as file:
     file.write('accuracy: %f' % (acc[1] / acc[0]))
     for i in range(36):
         t = 55

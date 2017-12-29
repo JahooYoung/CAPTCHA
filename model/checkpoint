@@ -1,0 +1,2 @@
+model_checkpoint_path: "three-layer-model"
+all_model_checkpoint_paths: "three-layer-model"
