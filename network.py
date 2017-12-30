@@ -35,7 +35,7 @@ datatype = 'rotate_mellow_resize'
 
 width, height, resultSpace = (24, 32, 36)
 
-rounds = 2000
+rounds = 1000
 bigsize = 10000
 datasize = bigsize * 3
 batchsize = 50
@@ -192,6 +192,11 @@ def getBatch(start, batchsize):
 ########################
 # train
 ########################
+
+saver = tf.train.Saver(tf.global_variables())
+module_file = tf.train.latest_checkpoint(modelpath)
+saver.restore(sess, module_file)
+print('Model restore from "%s"' % (modelpath + 'three-layer-model'))
 
 print('start training...')
 for i in range(rounds):
