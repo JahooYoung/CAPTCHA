@@ -9,14 +9,14 @@ import math
 import sys
 
 Dir = './data/train/'
+datasize = 10000
 
 # 随机字母:
 alphabet = []
 for i in range(10):
     alphabet.append(chr(48 + i))
 for i in range(26):
-    if chr(65 + i) != 'I' and chr(65 + i) != 'Q':
-        alphabet.append(chr(65 + i))
+    alphabet.append(chr(65 + i))
 def rndChar():
     return alphabet[random.randint(0, len(alphabet) - 1)]
 
@@ -80,11 +80,11 @@ def generate(filename):
     #         dots.append((random.randint(width // 6, width - 1), random.randint(0, height - 1)))
     #     draw.line(dots, fill = rndColor(), width = 2)
     # 噪点
-    # draw = ImageDraw.Draw(image)
-    # for t in range(500):
-    #     x = random.randint(0, width - 1)
-    #     y = random.randint(0, height - 1)
-    #     draw.point((x, y), fill = rndColor())
+    draw = ImageDraw.Draw(image)
+    for t in range(500):
+        x = random.randint(0, width - 1)
+        y = random.randint(0, height - 1)
+        draw.point((x, y), fill = rndColor())
     # # 模糊:
     # image = image.filter(ImageFilter.GaussianBlur(2.3))
     # image = image.filter(ImageFilter.RankFilter(5, 19))
@@ -106,7 +106,7 @@ if not os.path.exists(Dir):
 for file in os.listdir(Dir):
     os.remove(Dir + file)
 result = open(Dir + 'ans.csv', 'w')
-for i in range(10000):
+for i in range(datasize):
     if (i + 1) % 100 == 0:
         print(i + 1)
     file = str(i) + '.jpg'
