@@ -10,13 +10,31 @@ from multiprocessing import Pool
 path = 'data/train/'
 prefix = ''
 output_path = 'data/'
-shared_dir = 'data/train_rotate_mellow/'
-datatype = 'rotate_mellow'
+shared_dir = 'data/train_rotate_mellow_resize/'
+datatype = 'rotate_mellow_resize'
 workers = 4
 data_len = 10000
 start = 0
 
 def rect_size(image):
+    w, h = image.size
+    img = np.array(image.getdata()).reshape(h, w)
+    minx = w
+    miny = h
+    maxx = maxy = 0
+    for y in range(h):
+        for x in range(w):
+            if img[y][x] == 255:
+                minx = min(minx, x)
+                maxx = max(maxx, x)
+                miny = min(miny, y)
+                maxy = max(maxy, y)
+    # image = image.copy()
+    # ImageDraw.Draw(image).rectangle([(minx, miny), (maxx + 1, maxy + 1)], outline = 0)
+    
+    return (maxx + 1 - minx) * (maxy + 1 - miny)
+
+def crop(image):
     img = np.array(image.getdata()).reshape(40, 32)
     minx = 32
     miny = 40
@@ -28,63 +46,60 @@ def rect_size(image):
                 maxx = max(maxx, x)
                 miny = min(miny, y)
                 maxy = max(maxy, y)
-    # image = image.copy()
-    # ImageDraw.Draw(image).rectangle([(minx, miny), (maxx + 1, maxy + 1)], outline = 0)
-    
-    return (maxx + 1 - minx) * (maxy + 1 - miny)
-
-def fan(a):
-    return 255 - a
+    # print(minx, miny, maxx, maxy)
+    return image.crop((minx - 3, miny - 3, maxx + 3 + 1, maxy + 3 + 1)).resize((24, 32))
 
 dx = [0, 0, -1, 1, -1, -1, 1, 1]
 dy = [1, -1, 0, 0, -1, 1, -1, 1]
 def mellow(image):
-    img = np.array(image.getdata()).reshape(40, 32)
-    nimg = np.zeros((40, 32), dtype = np.uint8)
-    for y in range(40):
-        for x in range(32):
-            if img[y][x] == 255:
-                nimg[y][x] = 255
-                continue
+    w, h = image.size
+    img = np.array(image.getdata()).reshape(h, w)
+    nimg = np.zeros((h, w), dtype = np.uint8)
+    for y in range(h):
+        for x in range(w):
             cnt = 0
             for k in range(8):
                 tx = x + dx[k]
                 ty = y + dy[k]
-                if tx < 0 or ty < 0 or tx >= 32 or ty >= 40:
+                if tx < 0 or ty < 0 or tx >= w or ty >= h:
                     continue
                 if img[ty][tx] == 255:
                     cnt += 1
-            if cnt >= 4:
+            if cnt >= 4 or (img[y][x] == 255 and cnt > 1):
                 nimg[y][x] = 255
-    # print(list(img))
-    # print(list(nimg))
+
     return Image.fromarray(nimg, mode = 'L').convert('1')
 
-# encode data
-def encode_data(im):
-    im = im.convert('1')
-    im = Image.eval(im, fan)
-    # im.show()
+def rotate(im):
     l, r = (-36, 36)
     while l + 1 < r:
         mid1 = l + (r - l + 1) // 3
         mid2 = r - (r - l + 1) // 3
         rs1 = rect_size(im.rotate(mid1, expand = False))
         rs2 = rect_size(im.rotate(mid2, expand = False))
-        # print(mid1, rs1, mid2, rs2)
         if rs1 < rs2:
             r = mid2
         else:
             l = mid1
     if rect_size(im.copy().rotate(l, expand = False)) > rect_size(im.copy().rotate(r, expand = False)):
         l = r
-    # print(l)
-    im = im.rotate(l, expand = False)
-    # plt.subplot(121)
+    return im.rotate(l, expand = False)
+
+# encode data
+def encode_data(im):
+    im = im.convert('1')
+    im = Image.eval(im, lambda x: 255 - x)
+    # plt.subplot(131)
     # plt.imshow(np.array(im.getdata()).reshape(40, 32))
     im = mellow(im)
-    # plt.subplot(122)
+    im = rotate(im)
+    # plt.subplot(132)
     # plt.imshow(np.array(im.getdata()).reshape(40, 32))
+    im = mellow(im)
+    im = crop(im)
+    # im = mellow(im)
+    # plt.subplot(133)
+    # plt.imshow(np.array(im.getdata()).reshape(32, 24))
     # plt.show()
     # print(np.array(im.getdata()))
     a = list(im.getdata())
@@ -97,7 +112,7 @@ def cz_process(pr):
     print(name)
     if os.path.exists(shared_dir + str(index)):
         return
-    # print(data)
+
     data = []
     with Image.open(name) as im:
         for j in range(0, 4):
@@ -107,7 +122,7 @@ def cz_process(pr):
     with open(shared_dir + str(index), 'wb') as f:
         pickle.dump(data, f)
 
-# cz_process((0, 'data/train/100.jpg'))
+# cz_process((0, 'data/train/102.jpg'))
 # exit()
 
 def main():

@@ -14,31 +14,75 @@
 # limitations under the License.
 # ==============================================================================
 
-"""A very simple MNIST classifier.
-See extensive documentation at
-http://tensorflow.org/tutorials/mnist/beginners/index.md
-"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-# Import data
-from tensorflow.examples.tutorials.mnist import input_data
 
 import tensorflow as tf
 import pickle
 import random
 import numpy as np
 # from IPython import embed
-# from IPython import embed
 
-#flags = tf.app.flags
-#FLAGS = flags.FLAGS
-#FLAGS.data_dir='data'
-##flags.DEFINE_string('data_dir', '/tmp/data/', 'Directory for storing data') # 第一次启动会下载文本资料，放在/tmp/data文件夹下
-#
-#print(FLAGS.data_dir)
-#mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
+#######################
+# global settings
+#######################
+
+check_pictures = False
+
+modelpath = 'model/'
+datatype = 'rotate_mellow_resize'
+
+width, height, resultSpace = (24, 32, 36)
+
+rounds = 3000
+bigsize = 1000
+datasize = bigsize * 3
+batchsize = 50
+start = random.randint(0, datasize // batchsize) * batchsize
+
+feature1, feature2, feature3 = (32, 64, 128)
+core1, core2, core3 = (5, 3, 3)
+
+#######################
+# load data
+#######################
+
+print('loading data...', end = '')
+with open('data/train_package_%s_%d' % (datatype, bigsize), 'rb') as f:
+    inputX = pickle.load(f)
+with open('data/train_ans_%s_%d' % (datatype, bigsize), 'rb') as f:
+    data = pickle.load(f)
+    inputY = []
+    for t in data:
+        vector = [0] * 36
+        vector[t] = 1
+        inputY.append(vector)
+print('complete')
+
+#######################
+# check the pictures
+#######################
+
+if check_pictures:
+    import matplotlib.pyplot as plt
+    import matplotlib.image as mpimg
+    for i in range(20):
+        ii = random.randint(0, datasize)
+        print(ii, end = ' ')
+        for j, t in enumerate(inputY[ii]):
+            if t == 1:
+                if j < 10:
+                    print(j)
+                else:
+                    print(chr(j + 55))
+        plt.imshow(np.array(inputX[ii]).reshape(height, width))
+        plt.show()
+    exit()
+
+#######################
+# network
+#######################
 
 def weight_variable(shape, *, name):
     initial = tf.truncated_normal(shape, stddev = 0.1) # 变量的初始值为截断正太分布
@@ -72,9 +116,6 @@ def max_pool_2x2(x):
     return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                           strides=[1, 2, 2, 1], padding='SAME')
 
-sess = tf.InteractiveSession()
-
-width, height, resultSpace = (32, 40, 36)
 
 x = tf.placeholder(tf.float32, [None, width * height])
 x_image = tf.reshape(x, [-1,width,height,1]) #将输入按照 conv2d中input的格式来reshape，reshape
@@ -87,8 +128,7 @@ x_image = tf.reshape(x, [-1,width,height,1]) #将输入按照 conv2d中input的�
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*14*14*32
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*20*30*32
 """
-feature1 = 32
-W_conv1 = weight_variable([3, 3, 1, feature1], name = 'W_conv1')  
+W_conv1 = weight_variable([core1, core1, 1, feature1], name = 'W_conv1')  
 # 卷积是在每个5*5的patch中算出32个特征，分别是patch大小，输入通道数目，输出通道数目
 b_conv1 = bias_variable([feature1], name = 'b_conv1')
 h_conv1 = tf.nn.elu(conv2d(x_image, W_conv1) + b_conv1)
@@ -102,13 +142,13 @@ h_pool1 = max_pool_2x2(h_conv1)
 # 池化后，输出的图像尺寸为?*10*15*64
 """
 feature2 = 64
-W_conv2 = weight_variable([3, 3, feature1, feature2], name = 'W_conv2')
+W_conv2 = weight_variable([core2, core2, feature1, feature2], name = 'W_conv2')
 b_conv2 = bias_variable([feature2], name = 'b_conv2')
 h_conv2 = tf.nn.elu(conv2d(h_pool1, W_conv2) + b_conv2)
 h_pool2 = max_pool_2x2(h_conv2)
 
 feature3 = 128
-W_conv3 = weight_variable([3, 3, feature2, feature3], name = "W_conv3")
+W_conv3 = weight_variable([core3, core3, feature2, feature3], name = "W_conv3")
 b_conv3 = bias_variable([feature3], name = 'b_conv3')
 h_conv3 = tf.nn.elu(conv2d(h_pool2, W_conv3) + b_conv3)
 h_pool3 = max_pool_2x2(h_conv3)
@@ -139,50 +179,9 @@ cross_entropy = -tf.reduce_sum(y_ * tf.log(y_conv))
 train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy) # 使用adam优化
 correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1)) # 计算准确度
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+sess = tf.InteractiveSession()
 sess.run(tf.global_variables_initializer()) # 变量初始化
-
-########################
-# end of network
-########################
-
-modelpath = 'model/'
-datatype = 'rotate_mellow'
-
-rounds = 3000
-bigsize = 10000
-datasize = bigsize * 3
-batchsize = 50
-start = random.randint(0, datasize // batchsize) * batchsize
-
-print('loading data...', end = '')
-with open('data/train_package_%s_%d' % (datatype, bigsize), 'rb') as f:
-    inputX = pickle.load(f)
-with open('data/train_ans_%s_%d' % (datatype, bigsize), 'rb') as f:
-    data = pickle.load(f)
-    inputY = []
-    for t in data:
-        vector = [0] * 36
-        vector[t] = 1
-        inputY.append(vector)
-print('complete')
-
-#######################
-# check the pictures
-#######################
-# import matplotlib.pyplot as plt
-# import matplotlib.image as mpimg
-# for i in range(10):
-#     ii = random.randint(0, datasize)
-#     print(ii)
-#     for j, t in enumerate(inputY[ii]):
-#         if t == 1:
-#             if j < 10:
-#                 print(j)
-#             else:
-#                 print(chr(j + 55))
-#     plt.imshow(np.array(inputX[ii]).reshape(height, width))
-#     plt.show()
-# exit()
 
 def getBatch(start, batchsize):
     tmpX = inputX[start: start + batchsize]
@@ -194,19 +193,17 @@ def getBatch(start, batchsize):
 # train
 ########################
 
-print('start training')
+print('start training...')
 for i in range(rounds):
     batch = getBatch(start, batchsize)
-    #embed()
     start += batchsize
-    if start >= datasize: start -= datasize
-    #if start >= 10000: start -= 10000
-    if (i + 1) % 10 == 0:
-        # print(batch[1].shape)
-        train_accuracy = accuracy.eval(feed_dict={
-            x:batch[0], y_: batch[1], keep_prob: 1.0})
+    if start >= datasize: 
+        start -= datasize
+    if (i + 1) % 20 == 0:
+        train_accuracy = accuracy.eval(feed_dict = {
+            x: batch[0], y_: batch[1], keep_prob: 1.0 })
         print("step %d, training accuracy %g" % (i + 1, train_accuracy))
-    train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+    train_step.run(feed_dict = {x: batch[0], y_: batch[1], keep_prob: 0.5 })
 
 saver = tf.train.Saver(tf.global_variables())
 saver.save(sess, modelpath + 'three-layer-model')
@@ -260,7 +257,6 @@ with open(modelpath + 'result(%f).csv' % (acc[1] / acc[0]), 'w') as file:
                 acu = cor[i][j] / cnt[i]
             file.write(',%f' % (acu * 100))
         file.write('\n')
-
 
 ########################
 # apply
