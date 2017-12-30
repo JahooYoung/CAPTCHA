@@ -22,6 +22,7 @@ import tensorflow as tf
 import pickle
 import random
 import numpy as np
+import matplotlib.pyplot as plt
 # from IPython import embed
 
 #######################
@@ -67,8 +68,6 @@ print('complete')
 #######################
 
 if check_pictures:
-    import matplotlib.pyplot as plt
-    import matplotlib.image as mpimg
     for i in range(10):
         ii = random.randint(0, datasize)
         while inputY[ii][ord('Q') - 55] != 1:
@@ -246,6 +245,11 @@ for grp in range(bigsize // batchsize):
     for (i, ans) in enumerate(ansVec):
         cnt[ans] += 1
         cor[ans][preVec[i]] += 1
+        if ans == 26 and preVec[i] == 24:
+            index = datasize + grp * batchsize + i
+            print('id: %d, pid: %d, %d -> %d' % (index, index // 4, ans, preVec[i]))
+            plt.imshow(np.array(inputX[index]).reshape(height, width))
+            plt.show()
 
 acc = [0, 0]
 for i in range(36):

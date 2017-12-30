@@ -1,4 +1,5 @@
 import os
+import sys
 from PIL import Image, ImageDraw
 import pickle
 import numpy as np
@@ -50,6 +51,8 @@ def crop(image):
 
 dx = [0, 0, -1, 1, -1, -1, 1, 1]
 dy = [1, -1, 0, 0, -1, 1, -1, 1]
+dx8 = [0, 1, 1, 1, 0, -1, -1, -1, 0]
+dy8 = [1, 1, 0, -1, -1, -1, 0, 1, 1]
 def mellow(image):
     w, h = image.size
     img = np.array(image.getdata()).reshape(h, w)
@@ -57,14 +60,20 @@ def mellow(image):
     for y in range(h):
         for x in range(w):
             cnt = 0
-            for k in range(8):
-                tx = x + dx[k]
-                ty = y + dy[k]
+            flag = -1
+            flagcnt = -1
+            for k in range(9):
+                tx = x + dx8[k]
+                ty = y + dy8[k]
                 if tx < 0 or ty < 0 or tx >= w or ty >= h:
                     continue
-                if img[ty][tx] == 255:
+                if img[ty][tx] == 255 and k < 8:
                     cnt += 1
-            if cnt >= 4 or (img[y][x] == 255 and cnt > 1):
+                if flag != img[ty][tx]:
+                    flagcnt += 1
+                    flag = img[ty][tx]
+
+            if (cnt >= 4 and flagcnt <= 2) or (img[y][x] == 255 and cnt > 1):
                 nimg[y][x] = 255
 
     return Image.fromarray(nimg, mode = 'L').convert('1')
@@ -100,7 +109,7 @@ def search_block(st, img, vis):
             vis[ty][tx] = 1
             q.append((ty, tx))
             que.append((ty, tx))
-    if len(que) >= 10:
+    if len(que) >= 5:
         return
     for y, x in que:
         img[y][x] = 0
@@ -119,20 +128,20 @@ def wipe_noise(image):
 def process_single(im):
     im = im.convert('1')
     im = Image.eval(im, lambda x: 255 - x)
-    # plt.subplot(141)
-    # plt.imshow(np.array(im.getdata()).reshape(40, 32))
+    # plt.subplot(141) # debugtag
+    # plt.imshow(np.array(im.getdata()).reshape(40, 32)) # debugtag
     im = wipe_noise(im)
-    # plt.subplot(142)
-    # plt.imshow(np.array(im.getdata()).reshape(40, 32))
+    # plt.subplot(142) # debugtag
+    # plt.imshow(np.array(im.getdata()).reshape(40, 32)) # debugtag
     im = mellow(im)
     im = rotate(im)
-    # plt.subplot(143)
-    # plt.imshow(np.array(im.getdata()).reshape(40, 32))
+    # plt.subplot(143) # debugtag
+    # plt.imshow(np.array(im.getdata()).reshape(40, 32)) # debugtag
     im = mellow(im)
     im = crop(im)
-    # plt.subplot(144)
-    # plt.imshow(np.array(im.getdata()).reshape(32, 24))
-    # plt.show()
+    # plt.subplot(144) # debugtag
+    # plt.imshow(np.array(im.getdata()).reshape(32, 24)) # debugtag
+    # plt.show() # debugtag
 
     a = list(im.getdata())
     a = [int(i/255) for i in a]
@@ -152,9 +161,6 @@ def cz_process(pr):
             data.append(process_single(tmp))
     with open(shared_dir + str(index), 'wb') as f:
         pickle.dump(data, f)
-
-# cz_process((0, 'data/train/25.jpg'))
-# exit()
 
 def main():
     start_time = time.time()
@@ -201,4 +207,7 @@ def main():
     print('Run for %.2f seconds' % (time.time() - start_time))
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) > 1:
+        cz_process((0, 'data/train/%s.jpg' % (sys.argv[1])))
+    else:
+        main()
