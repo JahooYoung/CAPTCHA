@@ -146,7 +146,7 @@ sess.run(tf.global_variables_initializer()) # 变量初始化
 ########################
 
 modelpath = 'model/'
-datatype = 'rotate_'
+datatype = 'rotate_mellow'
 
 rounds = 3000
 bigsize = 10000
@@ -155,9 +155,9 @@ batchsize = 50
 start = random.randint(0, datasize // batchsize) * batchsize
 
 print('loading data...', end = '')
-with open('data/train_package_%s%d' % (datatype, bigsize), 'rb') as f:
+with open('data/train_package_%s_%d' % (datatype, bigsize), 'rb') as f:
     inputX = pickle.load(f)
-with open('data/train_ans_%s%d' % (datatype, bigsize), 'rb') as f:
+with open('data/train_ans_%s_%d' % (datatype, bigsize), 'rb') as f:
     data = pickle.load(f)
     inputY = []
     for t in data:
@@ -169,20 +169,20 @@ print('complete')
 #######################
 # check the pictures
 #######################
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-for i in range(10):
-    ii = random.randint(0, datasize)
-    print(ii)
-    for j, t in enumerate(inputY[ii]):
-        if t == 1:
-            if j < 10:
-                print(j)
-            else:
-                print(chr(j + 55))
-    plt.imshow(np.array(inputX[ii]).reshape(height, width))
-    plt.show()
-exit()
+# import matplotlib.pyplot as plt
+# import matplotlib.image as mpimg
+# for i in range(10):
+#     ii = random.randint(0, datasize)
+#     print(ii)
+#     for j, t in enumerate(inputY[ii]):
+#         if t == 1:
+#             if j < 10:
+#                 print(j)
+#             else:
+#                 print(chr(j + 55))
+#     plt.imshow(np.array(inputX[ii]).reshape(height, width))
+#     plt.show()
+# exit()
 
 def getBatch(start, batchsize):
     tmpX = inputX[start: start + batchsize]

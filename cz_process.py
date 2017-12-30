@@ -10,10 +10,11 @@ from multiprocessing import Pool
 path = 'data/train/'
 prefix = ''
 output_path = 'data/'
-workers = 1
-data_len = 1000
+shared_dir = 'data/train_rotate_mellow/'
+datatype = 'rotate_mellow'
+workers = 4
+data_len = 10000
 start = 0
-data = [0] * (data_len * 4)
 
 def rect_size(image):
     img = np.array(image.getdata()).reshape(40, 32)
@@ -81,7 +82,7 @@ def encode_data(im):
     im = im.rotate(l, expand = False)
     # plt.subplot(121)
     # plt.imshow(np.array(im.getdata()).reshape(40, 32))
-    # im = mellow(im)
+    im = mellow(im)
     # plt.subplot(122)
     # plt.imshow(np.array(im.getdata()).reshape(40, 32))
     # plt.show()
@@ -91,28 +92,29 @@ def encode_data(im):
     # print(a)
     return a
 
-#cropdata
-cnt = 1
 def cz_process(pr):
-    # global cnt
-    # if cnt % 100 == 0:
-    #     print(cnt)
-    # cnt += 1
-    # print(pr)
     index, name = pr
-    print(index, name)
+    print(name)
+    if os.path.exists(shared_dir + str(index)):
+        return
     # print(data)
+    data = []
     with Image.open(name) as im:
         for j in range(0, 4):
             box = (32 * j, 0, 32 * (j + 1), 40)
             tmp = im.crop(box)
-            data[index * 4 + j] = encode_data(tmp)
+            data.append(encode_data(tmp))
+    with open(shared_dir + str(index), 'wb') as f:
+        pickle.dump(data, f)
 
 # cz_process((0, 'data/train/100.jpg'))
 # exit()
 
 def main():
     start_time = time.time()
+
+    if not os.path.exists(shared_dir):
+        os.mkdir(shared_dir)
 
     datalist = []
     for i in range(start, start + data_len):
@@ -121,12 +123,20 @@ def main():
         datalist.append((i, name))
 
     if workers > 1:
-        Pool(workers).map(cz_process, datalist)
+        with Pool(workers) as p:
+            p.map(cz_process, datalist)
     else:
         for image in datalist:
             cz_process(image)
 
-    with open(output_path + 'train_package_rotate_%d' % (data_len), 'wb') as f:
+    data = []
+    for i in range(start, start + data_len):
+        with open(shared_dir + str(i), 'rb') as f:
+            tmp = pickle.load(f)
+            for t in tmp:
+                data.append(t)
+
+    with open(output_path + 'train_package_%s_%d' % (datatype, data_len), 'wb') as f:
         pickle.dump(data, f)
 
     # Process answer
@@ -140,7 +150,7 @@ def main():
                     ansVector.append(ord(ch) - 48)
                 else:
                     ansVector.append(ord(ch) - 55)
-    with open(output_path + 'train_ans_rotate_%d' % (data_len), 'wb') as f:
+    with open(output_path + 'train_ans_%s_%d' % (datatype, data_len), 'wb') as f:
         pickle.dump(ansVector, f)
 
     print('Run for %.2f seconds' % (time.time() - start_time))
