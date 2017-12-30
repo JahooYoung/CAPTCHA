@@ -87,7 +87,7 @@ x_image = tf.reshape(x, [-1,width,height,1]) #将输入按照 conv2d中input的�
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*14*14*32
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*20*30*32
 """
-feature1 = 64
+feature1 = 32
 W_conv1 = weight_variable([3, 3, 1, feature1], name = 'W_conv1')  
 # 卷积是在每个5*5的patch中算出32个特征，分别是patch大小，输入通道数目，输出通道数目
 b_conv1 = bias_variable([feature1], name = 'b_conv1')
@@ -101,7 +101,7 @@ h_pool1 = max_pool_2x2(h_conv1)
 # 池化后，输出的图像尺寸为?*7*7*64
 # 池化后，输出的图像尺寸为?*10*15*64
 """
-feature2 = 128
+feature2 = 64
 W_conv2 = weight_variable([3, 3, feature1, feature2], name = 'W_conv2')
 b_conv2 = bias_variable([feature2], name = 'b_conv2')
 h_conv2 = tf.nn.elu(conv2d(h_pool1, W_conv2) + b_conv2)
@@ -146,6 +146,7 @@ sess.run(tf.global_variables_initializer()) # 变量初始化
 ########################
 
 modelpath = 'model/'
+datatype = 'rotate_'
 
 rounds = 3000
 bigsize = 10000
@@ -154,9 +155,9 @@ batchsize = 50
 start = random.randint(0, datasize // batchsize) * batchsize
 
 print('loading data...', end = '')
-with open('data/train_package_%d' % bigsize, 'rb') as f:
+with open('data/train_package_%s%d' % (datatype, bigsize), 'rb') as f:
     inputX = pickle.load(f)
-with open('data/train_ans_%d' % bigsize, 'rb') as f:
+with open('data/train_ans_%s%d' % (datatype, bigsize), 'rb') as f:
     data = pickle.load(f)
     inputY = []
     for t in data:
@@ -168,20 +169,20 @@ print('complete')
 #######################
 # check the pictures
 #######################
-# import matplotlib.pyplot as plt
-# import matplotlib.image as mpimg
-# for i in range(10):
-#     ii = random.randint(0, datasize)
-#     print(ii)
-#     for j, t in enumerate(inputY[ii]):
-#         if t == 1:
-#             if j < 10:
-#                 print(j)
-#             else:
-#                 print(chr(j + 55))
-#     plt.imshow(np.array(inputX[ii]).reshape(height, width))
-#     plt.show()
-# exit()
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+for i in range(10):
+    ii = random.randint(0, datasize)
+    print(ii)
+    for j, t in enumerate(inputY[ii]):
+        if t == 1:
+            if j < 10:
+                print(j)
+            else:
+                print(chr(j + 55))
+    plt.imshow(np.array(inputX[ii]).reshape(height, width))
+    plt.show()
+exit()
 
 def getBatch(start, batchsize):
     tmpX = inputX[start: start + batchsize]
