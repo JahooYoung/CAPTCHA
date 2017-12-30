@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from multiprocessing import Pool
-# import type2_preprocessor_v1 as prep
 
 path = 'data/train/'
 prefix = ''
@@ -46,7 +45,7 @@ def crop(image):
                 maxx = max(maxx, x)
                 miny = min(miny, y)
                 maxy = max(maxy, y)
-    # print(minx, miny, maxx, maxy)
+
     return image.crop((minx - 3, miny - 3, maxx + 3 + 1, maxy + 3 + 1)).resize((24, 32))
 
 dx = [0, 0, -1, 1, -1, -1, 1, 1]
@@ -85,26 +84,58 @@ def rotate(im):
         l = r
     return im.rotate(l, expand = False)
 
-# encode data
-def encode_data(im):
+def search_block(st, img, vis):
+    h, w = img.shape
+    q = [st]
+    que = [st]
+    vis[st[0]][st[1]] = 1
+    while len(q) > 0:
+        y, x = q.pop(0)
+        for k in range(4):
+            ty, tx = (y + dy[k], x + dx[k])
+            if ty < 0 or tx < 0 or ty >= h or tx >= w:
+                continue
+            if vis[ty][tx] == 1 or img[ty][tx] == 0:
+                continue
+            vis[ty][tx] = 1
+            q.append((ty, tx))
+            que.append((ty, tx))
+    if len(que) >= 10:
+        return
+    for y, x in que:
+        img[y][x] = 0
+
+def wipe_noise(image):
+    w, h = image.size
+    img = np.array(image.getdata(), dtype = np.uint8).reshape(h, w)
+    vis = np.zeros((h, w), dtype = np.uint8)
+    for y in range(h):
+        for x in range(w):
+            if img[y][x] == 255 and vis[y][x] == 0:
+                search_block((y, x), img, vis)
+
+    return Image.fromarray(img, mode = 'L').convert('1')
+
+def process_single(im):
     im = im.convert('1')
     im = Image.eval(im, lambda x: 255 - x)
-    # plt.subplot(131)
+    # plt.subplot(141)
+    # plt.imshow(np.array(im.getdata()).reshape(40, 32))
+    im = wipe_noise(im)
+    # plt.subplot(142)
     # plt.imshow(np.array(im.getdata()).reshape(40, 32))
     im = mellow(im)
     im = rotate(im)
-    # plt.subplot(132)
+    # plt.subplot(143)
     # plt.imshow(np.array(im.getdata()).reshape(40, 32))
     im = mellow(im)
     im = crop(im)
-    # im = mellow(im)
-    # plt.subplot(133)
+    # plt.subplot(144)
     # plt.imshow(np.array(im.getdata()).reshape(32, 24))
     # plt.show()
-    # print(np.array(im.getdata()))
+
     a = list(im.getdata())
     a = [int(i/255) for i in a]
-    # print(a)
     return a
 
 def cz_process(pr):
@@ -118,11 +149,11 @@ def cz_process(pr):
         for j in range(0, 4):
             box = (32 * j, 0, 32 * (j + 1), 40)
             tmp = im.crop(box)
-            data.append(encode_data(tmp))
+            data.append(process_single(tmp))
     with open(shared_dir + str(index), 'wb') as f:
         pickle.dump(data, f)
 
-# cz_process((0, 'data/train/102.jpg'))
+# cz_process((0, 'data/train/25.jpg'))
 # exit()
 
 def main():
@@ -133,7 +164,6 @@ def main():
 
     datalist = []
     for i in range(start, start + data_len):
-    #     type2_train_1.jpg
         name = path + prefix + str(i) + '.jpg'
         datalist.append((i, name))
 

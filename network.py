@@ -29,13 +29,15 @@ import numpy as np
 #######################
 
 check_pictures = False
+is_training = False
+from_last_time = True
 
 modelpath = 'model/'
 datatype = 'rotate_mellow_resize'
 
 width, height, resultSpace = (24, 32, 36)
 
-rounds = 1000
+rounds = 500
 bigsize = 10000
 datasize = bigsize * 3
 batchsize = 50
@@ -67,8 +69,10 @@ print('complete')
 if check_pictures:
     import matplotlib.pyplot as plt
     import matplotlib.image as mpimg
-    for i in range(20):
+    for i in range(10):
         ii = random.randint(0, datasize)
+        while inputY[ii][ord('Q') - 55] != 1:
+            ii = random.randint(0, datasize)
         print(ii, end = ' ')
         for j, t in enumerate(inputY[ii]):
             if t == 1:
@@ -193,39 +197,42 @@ def getBatch(start, batchsize):
 # train
 ########################
 
-saver = tf.train.Saver(tf.global_variables())
-module_file = tf.train.latest_checkpoint(modelpath)
-saver.restore(sess, module_file)
-print('Model restore from "%s"' % (modelpath + 'three-layer-model'))
+if is_training:
+    if from_last_time:
+        saver = tf.train.Saver(tf.global_variables())
+        module_file = tf.train.latest_checkpoint(modelpath)
+        saver.restore(sess, module_file)
+        print('Model restore from "%s"' % (modelpath + 'three-layer-model'))
 
-print('start training...')
-for i in range(rounds):
-    batch = getBatch(start, batchsize)
-    start += batchsize
-    if start >= datasize: 
-        start -= datasize
-    if (i + 1) % 20 == 0:
-        train_accuracy = accuracy.eval(feed_dict = {
-            x: batch[0], y_: batch[1], keep_prob: 1.0 })
-        print("step %d, training accuracy %g" % (i + 1, train_accuracy))
-    train_step.run(feed_dict = {x: batch[0], y_: batch[1], keep_prob: 0.5 })
+    print('start training...')
+    for i in range(rounds):
+        batch = getBatch(start, batchsize)
+        start += batchsize
+        if start >= datasize: 
+            start -= datasize
+        if (i + 1) % 20 == 0:
+            train_accuracy = accuracy.eval(feed_dict = {
+                x: batch[0], y_: batch[1], keep_prob: 1.0 })
+            print("step %d, training accuracy %g" % (i + 1, train_accuracy))
+        train_step.run(feed_dict = {x: batch[0], y_: batch[1], keep_prob: 0.5 })
 
-saver = tf.train.Saver(tf.global_variables())
-saver.save(sess, modelpath + 'three-layer-model')
-print('Model saved at "%s"' % (modelpath + 'three-layer-model'))
+    saver = tf.train.Saver(tf.global_variables())
+    saver.save(sess, modelpath + 'three-layer-model')
+    print('Model saved at "%s"' % (modelpath + 'three-layer-model'))
 
 ########################
 # test
 ########################
 
-# saver = tf.train.Saver(tf.global_variables())
-# module_file = tf.train.latest_checkpoint(modelpath)
-# saver.restore(sess, module_file)
-# print('Model restore from "%s"' % (modelpath + 'three-layer-model'))
+if not is_training:
+    saver = tf.train.Saver(tf.global_variables())
+    module_file = tf.train.latest_checkpoint(modelpath)
+    saver.restore(sess, module_file)
+    print('Model restore from "%s"' % (modelpath + 'three-layer-model'))
 
 cnt = np.zeros(36, dtype = np.int32)
 cor = np.zeros((36, 36), dtype = np.int32)
-batchsize = 1000
+batchsize = min(1000, bigsize)
 print('start testing...(total groups: %d)' % (bigsize // batchsize))
 for grp in range(bigsize // batchsize):
     print('testing group %d' % (grp))
