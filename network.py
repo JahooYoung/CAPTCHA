@@ -35,8 +35,8 @@ datatype = 'rotate_mellow_resize'
 
 width, height, resultSpace = (24, 32, 36)
 
-rounds = 3000
-bigsize = 1000
+rounds = 2000
+bigsize = 10000
 datasize = bigsize * 3
 batchsize = 50
 start = random.randint(0, datasize // batchsize) * batchsize
