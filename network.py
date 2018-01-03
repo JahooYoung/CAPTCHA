@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 #######################
 
 check_pictures = False
-is_training = False
+is_training = True
 from_last_time = True
 
 modelpath = 'model/'
@@ -38,7 +38,7 @@ datatype = 'rotate_mellow_resize'
 
 width, height, resultSpace = (24, 32, 36)
 
-rounds = 500
+rounds = 1000
 bigsize = 10000
 datasize = bigsize * 3
 batchsize = 50
@@ -134,7 +134,7 @@ x_image = tf.reshape(x, [-1,width,height,1]) #将输入按照 conv2d中input的�
 W_conv1 = weight_variable([core1, core1, 1, feature1], name = 'W_conv1')  
 # 卷积是在每个5*5的patch中算出32个特征，分别是patch大小，输入通道数目，输出通道数目
 b_conv1 = bias_variable([feature1], name = 'b_conv1')
-h_conv1 = tf.nn.elu(conv2d(x_image, W_conv1) + b_conv1)
+h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 h_pool1 = max_pool_2x2(h_conv1)
 
 """
@@ -147,19 +147,19 @@ h_pool1 = max_pool_2x2(h_conv1)
 feature2 = 64
 W_conv2 = weight_variable([core2, core2, feature1, feature2], name = 'W_conv2')
 b_conv2 = bias_variable([feature2], name = 'b_conv2')
-h_conv2 = tf.nn.elu(conv2d(h_pool1, W_conv2) + b_conv2)
+h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
 h_pool2 = max_pool_2x2(h_conv2)
 
 feature3 = 128
 W_conv3 = weight_variable([core3, core3, feature2, feature3], name = "W_conv3")
 b_conv3 = bias_variable([feature3], name = 'b_conv3')
-h_conv3 = tf.nn.elu(conv2d(h_pool2, W_conv3) + b_conv3)
+h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3) + b_conv3)
 h_pool3 = max_pool_2x2(h_conv3)
 # h_pool4 = max_pool_2x2(h_pool3)
 
 # W_conv4 = weight_variable([5, 5, 64, feature3])
 # b_conv4 = bias_variable([feature3])
-# h_conv4 = tf.nn.elu(conv2d(h_pool3, W_conv4) + b_conv4)
+# h_conv4 = tf.nn.relu(conv2d(h_pool3, W_conv4) + b_conv4)
 # h_pool4 = max_pool_2x2(h_conv4)
 
 # 第三层 是个全连接层,输入维数7*7*64, 输出维数为output_dimension
@@ -167,7 +167,7 @@ output_dimension = 1024
 W_fc1 = weight_variable([(width // 8) * (height // 8) * feature3, output_dimension], name = 'W_fc1')
 b_fc1 = bias_variable([output_dimension], name = 'b_fc1')
 h_pool2_flat = tf.reshape(h_pool3, [-1, (width // 8) * (height // 8) * feature3])
-h_fc1 = tf.nn.elu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 keep_prob = tf.placeholder(tf.float32) # 这里使用了drop out,即随机安排一些cell输出值为0，可以防止过拟合
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
@@ -245,11 +245,11 @@ for grp in range(bigsize // batchsize):
     for (i, ans) in enumerate(ansVec):
         cnt[ans] += 1
         cor[ans][preVec[i]] += 1
-        if ans == 26 and preVec[i] == 24:
-            index = datasize + grp * batchsize + i
-            print('id: %d, pid: %d, %d -> %d' % (index, index // 4, ans, preVec[i]))
-            plt.imshow(np.array(inputX[index]).reshape(height, width))
-            plt.show()
+        # if ans == 26 and preVec[i] == 24:
+        #     index = datasize + grp * batchsize + i
+        #     print('id: %d, pid: %d, %d -> %d' % (index, index // 4, ans, preVec[i]))
+        #     plt.imshow(np.array(inputX[index]).reshape(height, width))
+        #     plt.show()
 
 acc = [0, 0]
 for i in range(36):
