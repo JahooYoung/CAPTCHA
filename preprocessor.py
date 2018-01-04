@@ -1,6 +1,6 @@
 import os
 import sys
-from PIL import Image, ImageDraw
+from PIL import Image
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,6 +15,9 @@ datatype = 'rotate_mellow_resize'
 workers = 4
 data_len = 10000
 start = 0
+output_width = 20
+output_height = 24
+
 
 def rect_size(image):
     w, h = image.size
@@ -30,9 +33,11 @@ def rect_size(image):
                 miny = min(miny, y)
                 maxy = max(maxy, y)
     # image = image.copy()
-    # ImageDraw.Draw(image).rectangle([(minx, miny), (maxx + 1, maxy + 1)], outline = 0)
-    
+    # rect = [(minx, miny), (maxx + 1, maxy + 1)]
+    # ImageDraw.Draw(image).rectangle(rect, outline = 0)
+
     return (maxx + 1 - minx) * (maxy + 1 - miny)
+
 
 def crop(image):
     img = np.array(image.getdata()).reshape(40, 32)
@@ -47,16 +52,20 @@ def crop(image):
                 miny = min(miny, y)
                 maxy = max(maxy, y)
 
-    return image.crop((minx - 3, miny - 3, maxx + 3 + 1, maxy + 3 + 1)).resize((24, 32))
+    box = (minx - 3, miny - 3, maxx + 3 + 1, maxy + 3 + 1)
+    return image.crop(box).resize((output_width, output_height))
+
 
 dx = [0, 0, -1, 1, -1, -1, 1, 1]
 dy = [1, -1, 0, 0, -1, 1, -1, 1]
 dx8 = [0, 1, 1, 1, 0, -1, -1, -1, 0]
 dy8 = [1, 1, 0, -1, -1, -1, 0, 1, 1]
+
+
 def mellow(image):
     w, h = image.size
     img = np.array(image.getdata()).reshape(h, w)
-    nimg = np.zeros((h, w), dtype = np.uint8)
+    nimg = np.zeros((h, w), dtype=np.uint8)
     for y in range(h):
         for x in range(w):
             cnt = 0
@@ -76,22 +85,27 @@ def mellow(image):
             if (cnt >= 4 and flagcnt <= 2) or (img[y][x] == 255 and cnt > 1):
                 nimg[y][x] = 255
 
-    return Image.fromarray(nimg, mode = 'L').convert('1')
+    return Image.fromarray(nimg, mode='L').convert('1')
+
 
 def rotate(im):
-    l, r = (-36, 36)
-    while l + 1 < r:
-        mid1 = l + (r - l + 1) // 3
-        mid2 = r - (r - l + 1) // 3
-        rs1 = rect_size(im.rotate(mid1, expand = False))
-        rs2 = rect_size(im.rotate(mid2, expand = False))
+    le = -36
+    ri = 36
+    while le + 1 < ri:
+        mid1 = le + (ri - le + 1) // 3
+        mid2 = ri - (ri - le + 1) // 3
+        rs1 = rect_size(im.rotate(mid1, expand=False))
+        rs2 = rect_size(im.rotate(mid2, expand=False))
         if rs1 < rs2:
-            r = mid2
+            ri = mid2 - 1
         else:
-            l = mid1
-    if rect_size(im.copy().rotate(l, expand = False)) > rect_size(im.copy().rotate(r, expand = False)):
-        l = r
-    return im.rotate(l, expand = False)
+            le = mid1 + 1
+    rs1 = rect_size(im.rotate(le, expand=False))
+    rs2 = rect_size(im.rotate(ri, expand=False))
+    if rs1 > rs2:
+        le = ri
+    return im.rotate(le, expand=False)
+
 
 def search_block(st, img, vis):
     h, w = img.shape
@@ -114,42 +128,58 @@ def search_block(st, img, vis):
     for y, x in que:
         img[y][x] = 0
 
+
 def wipe_noise(image):
     w, h = image.size
-    img = np.array(image.getdata(), dtype = np.uint8).reshape(h, w)
-    vis = np.zeros((h, w), dtype = np.uint8)
+    img = np.array(image.getdata(), dtype=np.uint8).reshape(h, w)
+    vis = np.zeros((h, w), dtype=np.uint8)
     for y in range(h):
         for x in range(w):
             if img[y][x] == 255 and vis[y][x] == 0:
                 search_block((y, x), img, vis)
 
-    return Image.fromarray(img, mode = 'L').convert('1')
+    return Image.fromarray(img, mode='L').convert('1')
+
 
 def process_single(im):
     im = im.convert('1')
     im = Image.eval(im, lambda x: 255 - x)
-    # plt.subplot(141) # debugtag
-    # plt.imshow(np.array(im.getdata()).reshape(40, 32)) # debugtag
     im = wipe_noise(im)
-    # plt.subplot(142) # debugtag
-    # plt.imshow(np.array(im.getdata()).reshape(40, 32)) # debugtag
-    im = mellow(im)
-    im = rotate(im)
-    # plt.subplot(143) # debugtag
-    # plt.imshow(np.array(im.getdata()).reshape(40, 32)) # debugtag
+    # im = mellow(im)
+    # im = rotate(im)
     im = mellow(im)
     im = crop(im)
-    # plt.subplot(144) # debugtag
-    # plt.imshow(np.array(im.getdata()).reshape(32, 24)) # debugtag
-    # plt.show() # debugtag
 
-    a = list(im.getdata())
-    a = [int(i/255) for i in a]
+    a = np.array(im.getdata(), dtype='uint8') // 255
     return a
+
+
+def process_single_debug(im):
+    im = im.convert('1')
+    im = Image.eval(im, lambda x: 255 - x)
+    plt.subplot(141)
+    plt.imshow(np.array(im.getdata()).reshape(40, 32))
+    im = wipe_noise(im)
+    plt.subplot(142)
+    plt.imshow(np.array(im.getdata()).reshape(40, 32))
+    # im = mellow(im)
+    # im = rotate(im)
+    plt.subplot(143)
+    plt.imshow(np.array(im.getdata()).reshape(40, 32))
+    im = mellow(im)
+    im = crop(im)
+    plt.subplot(144)
+    plt.imshow(np.array(im.getdata()).reshape(output_height, output_width))
+    plt.show()
+
+    a = np.array(im.getdata(), dtype='uint8') // 255
+    return a
+
 
 def process(pr):
     index, name = pr
-    print(name)
+    if index % 50 == 0:
+        print(name)
     if os.path.exists(shared_dir + str(index)):
         return
 
@@ -161,6 +191,18 @@ def process(pr):
             data.append(process_single(tmp))
     with open(shared_dir + str(index), 'wb') as f:
         pickle.dump(data, f)
+
+
+def process_debug(pr):
+    index, name = pr
+    print(name)
+
+    with Image.open(name) as im:
+        for j in range(0, 4):
+            box = (32 * j, 0, 32 * (j + 1), 40)
+            tmp = im.crop(box)
+            process_single_debug(tmp)
+
 
 def main():
     start_time = time.time()
@@ -187,12 +229,13 @@ def main():
             for t in tmp:
                 data.append(t)
 
-    with open(output_path + 'train_package_%s_%d' % (datatype, data_len), 'wb') as f:
+    output_file = output_path + 'train_package_%s_%d' % (datatype, data_len)
+    with open(output_file, 'wb') as f:
         pickle.dump(data, f)
 
     # Process answer
     with open(path + 'ans.csv', 'r') as file:
-        fileData = file.read().split('\n')[start : start + data_len]
+        fileData = file.read().split('\n')[start: start + data_len]
         ansVector = []
         for s in fileData:
             ans = s.split(',')[1]
@@ -201,13 +244,16 @@ def main():
                     ansVector.append(ord(ch) - 48)
                 else:
                     ansVector.append(ord(ch) - 55)
-    with open(output_path + 'train_ans_%s_%d' % (datatype, data_len), 'wb') as f:
+
+    output_file = output_path + 'train_ans_%s_%d' % (datatype, data_len)
+    with open(output_file, 'wb') as f:
         pickle.dump(ansVector, f)
 
     print('Run for %.2f seconds' % (time.time() - start_time))
 
+
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        process((0, 'data/train/%s.jpg' % (sys.argv[1])))
+        process_debug((0, 'data/train/%s.jpg' % (sys.argv[1])))
     else:
         main()
