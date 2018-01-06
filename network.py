@@ -1,4 +1,4 @@
-#-*- coding: UTF-8 -*- 
+#-*- coding: UTF-8 -*-
 # Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,14 +29,14 @@ import matplotlib.pyplot as plt
 # global settings
 #######################
 
-check_pictures = False
+check_pictures = True
 is_training = True
 from_last_time = True
 
 modelpath = 'model/'
 datatype = 'rotate_mellow_resize'
 
-width, height, resultSpace = (24, 32, 36)
+width, height, resultSpace = (20, 24, 36)
 
 rounds = 1000
 bigsize = 10000
@@ -131,7 +131,7 @@ x_image = tf.reshape(x, [-1,width,height,1]) #将输入按照 conv2d中input的�
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*14*14*32
 # 在池化阶段，ksize=[1,2,2,1] 那么卷积结果经过池化以后的结果，其尺寸应该是？*20*30*32
 """
-W_conv1 = weight_variable([core1, core1, 1, feature1], name = 'W_conv1')  
+W_conv1 = weight_variable([core1, core1, 1, feature1], name = 'W_conv1')
 # 卷积是在每个5*5的patch中算出32个特征，分别是patch大小，输入通道数目，输出通道数目
 b_conv1 = bias_variable([feature1], name = 'b_conv1')
 h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
@@ -207,7 +207,7 @@ if is_training:
     for i in range(rounds):
         batch = getBatch(start, batchsize)
         start += batchsize
-        if start >= datasize: 
+        if start >= datasize:
             start -= datasize
         if (i + 1) % 20 == 0:
             train_accuracy = accuracy.eval(feed_dict = {
@@ -276,7 +276,7 @@ with open(modelpath + 'result(%f).csv' % (acc[1] / acc[0]), 'w') as file:
 
 ########################
 # apply
-########################     
+########################
 
 # imageNumPer = 500
 # with open('data/type2_test2_submit.csv', 'w') as file:
