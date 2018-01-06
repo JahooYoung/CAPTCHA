@@ -1,7 +1,9 @@
+wheel
 numpy
 imutils
 sklearn
 tensorflow
 keras
 opencv-contrib-python
-pillow
+Pillow
+h5py
