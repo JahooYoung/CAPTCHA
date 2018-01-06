@@ -9,7 +9,7 @@ import math
 import sys
 
 Dir = './data/train/'
-datasize = 10000
+datasize = 10
 
 # 随机字母:
 alphabet = []

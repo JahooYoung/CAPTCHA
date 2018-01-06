@@ -7,7 +7,6 @@ from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers.core import Flatten, Dense, Dropout
 
 
-LETTER_IMAGES_FOLDER = "extracted_letter_images"
 MODEL_FILENAME = "keras_model/captcha_model.hdf5"
 MODEL_LABELS_FILENAME = "keras_model/model_labels.dat"
 

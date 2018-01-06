@@ -180,6 +180,16 @@ def process_single_debug(im):
     return a
 
 
+def process_for_predict(filename):
+    data = []
+    with Image.open(filename) as im:
+        for j in range(0, 4):
+            box = (32 * j, 0, 32 * (j + 1), 40)
+            tmp = im.crop(box)
+            data.append(process_single(tmp))
+    return data
+
+
 def process(pr):
     index, name = pr
     if index % 50 == 0:
